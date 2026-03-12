@@ -7,6 +7,7 @@ import TextareaAutosize from "react-textarea-autosize"
 import { ArrowUpIcon, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { z } from "zod"
+import { onInvoke } from "../actions"
 
 import { Button } from "@/components/ui/button"
 
@@ -82,6 +83,16 @@ const ProjectForm = () => {
   const handleTemplate = (prompt) => {
     form.setValue("content", prompt)
   }
+    const onInvokeAi = async () => {
+    try {
+      const res = await onInvoke()
+      console.log(res)
+      toast.success("Done")
+    } catch (error) {
+      console.log(error)
+      toast.error("Invoke failed")
+    }
+  }
 
   const onSubmit = async (values) => {
     try {
@@ -101,12 +112,16 @@ const ProjectForm = () => {
       setLoading(false)
 
     }
+   
   }
 
   return (
     <div className="space-y-8">
 
       {/* Templates */}
+      <Button onClick={onInvokeAi}>
+        Invoke AI Agent
+      </Button>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 

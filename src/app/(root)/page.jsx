@@ -1,9 +1,13 @@
+"use client";
 import Image from "next/image";
 import ProjectForm from "@/modules/home/components/project-form"
-
+import React from "react";
+import { Button } from "@base-ui/react";
 export default function Page() {
+
   return (
     <div className="flex items-center justify-center w-full px-4 py-16">
+
       <div className="max-w-5xl w-full">
         
         <section className="space-y-8 flex flex-col items-center">
