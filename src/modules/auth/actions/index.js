@@ -3,45 +3,30 @@
 import db from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 
-// user ko database me save karna
 export const onBoardUser = async () => {
   try {
-    // Clerk se logged-in user lo
     const user = await currentUser();
 
     if (!user) {
-      return {
-        success: false,
-        error: "No authenticated user found",
-      };
+      return { success: false, error: "No authenticated user found" };
     }
 
-    // user data extract karo
-    const { id, firstName, lastName, emailAddresses, imageUrl } = user;
+    const { id, firstName, lastName, imageUrl, emailAddresses } = user;
 
-    // full name create karo
-    const name =
-      firstName && lastName
-        ? `${firstName} ${lastName}`
-        : firstName || lastName || null;
-
-    const email = emailAddresses?.[0]?.emailAddress || "";
-// ?. optional chaining agar h toh access karo nahi h toh error throw mat karna
-    // user create ya update karo upsert means update and insert
     const newUser = await db.user.upsert({
       where: {
         clerkId: id,
       },
       update: {
-        name,
+        name: firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || null,
         image: imageUrl || null,
-        email,
+        email: emailAddresses[0]?.emailAddress || "",
       },
       create: {
         clerkId: id,
-        name,
+        name: firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || null,
         image: imageUrl || null,
-        email,
+        email: emailAddresses[0]?.emailAddress || "",
       },
     });
 
@@ -51,8 +36,7 @@ export const onBoardUser = async () => {
       message: "User onboarded successfully",
     };
   } catch (error) {
-    console.error("Error onboarding user:", error);
-
+    console.error("❌ Error onboarding user:", error);
     return {
       success: false,
       error: "Failed to onboard user",
@@ -60,12 +44,13 @@ export const onBoardUser = async () => {
   }
 };
 
-// database se current user lana
 export const getCurrentUser = async () => {
   try {
     const user = await currentUser();
 
-    if (!user) return null;
+    if (!user) {
+      return null;
+    }
 
     const dbUser = await db.user.findUnique({
       where: {
@@ -82,72 +67,7 @@ export const getCurrentUser = async () => {
 
     return dbUser;
   } catch (error) {
-    console.error("Error fetching current user:", error);
+    console.error("❌ Error fetching current user:", error);
     return null;
   }
 };
-
-
-
-
-
-
-
-// "use server";
-
-// import db from "@/lib/db";
-// import { currentUser } from "@clerk/nextjs/server";
-
-// export const onBoardUser = () => {
-
-//   return currentUser()
-//     .then((user) => {
-
-//       if (!user) {
-//         return {
-//           success: false,
-//           error: "No authenticated user found",
-//         };
-//       }
-
-    //   const { id, firstName,     lastName, emailAddresses, imageUrl } = user;
-
-//       const name =
-//         firstName && lastName
-//           ? `${firstName} ${lastName}`
-//           : firstName || lastName || null;
-
-//       const email = emailAddresses?.[0]?.emailAddress || "";
-
-//       return db.user.upsert({
-//         where: {
-//           clerkId: id,
-//         },
-//         update: {
-//           name,
-//           image: imageUrl || null,
-//           email,
-//         },
-//         create: {
-//           clerkId: id,
-//           name,
-//           image: imageUrl || null,
-//           email,
-//         },
-//       });
-//     })
-//     .then((newUser) => {
-//       return {
-//         success: true,
-//         user: newUser,
-//       };
-//     })
-//     .catch((error) => {
-//       console.error("Error onboarding user:", error);
-
-//       return {
-//         success: false,
-//         error: "Failed to onboard user",
-//       };
-//     });
-// };

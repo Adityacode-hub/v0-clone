@@ -27,19 +27,14 @@ export const createProject = async (value) => {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
 
+  // ✅ Fixed: Error() mein string pass karo, object nahi
   try {
     await consumeCredits();
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error({
-        code: "BAD_REQUEST",
-        message: "Something went wrong",
-      });
+      throw new Error("Something went wrong");
     } else {
-      throw new Error({
-        code: "TOO_MANY_REQUESTS",
-        message: "Too many requests",
-      });
+      throw new Error("Too many requests");
     }
   }
 
@@ -57,13 +52,20 @@ export const createProject = async (value) => {
     },
   });
 
-  await inngest.send({
-    name: "code-agent/run",
-    data: {
-      value: value,
-      projectId: newProject.id,
-    },
-  });
+  // ✅ Fixed: inngest.send() ko try-catch mein wrap kiya
+  try {
+    await inngest.send({
+      name: "code-agent/run",
+      data: {
+        value: value,
+        projectId: newProject.id,
+      },
+    });
+  } catch (error) {
+    console.error("Inngest send failed:", error);
+    // Project ban gaya hai, sirf background job fail hua
+    // Aap chahein toh yahan project delete bhi kar sakte ho
+  }
 
   return newProject;
 };
@@ -74,7 +76,7 @@ export const getProjectById = async (projectId) => {
 
   const project = await db.project.findUnique({
     where: {
-      id: projectId,
+      id: Number(projectId),
       userId: user.id,
     },
   });
