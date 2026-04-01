@@ -3,6 +3,7 @@ import { createMessages, getMessages } from "../actions";
 
 
 export const prefetchMessages = async (queryClient, projectId) => {
+  if (!projectId) return; // ✅ guard
   await queryClient.prefetchQuery({
     queryKey: ["messages", projectId],
     queryFn: () => getMessages(projectId),
@@ -14,10 +15,13 @@ export const useGetMessages = (projectId) => {
   return useQuery({
     queryKey: ["messages", projectId], 
     queryFn: () => getMessages(projectId),
+    enabled: !!projectId,  // ✅ only runs when projectId exists
     staleTime: 10000,
-    refetchInterval: (data) => {
-     
-      return data?.length ? 5000 : false;
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      const last = data?.[data.length - 1];
+      // ✅ keep polling if last message is from user (still processing)
+      return last?.role === "USER" ? 3000 : false;
     },
   });
 };
@@ -27,15 +31,12 @@ export const useCreateMessages = (projectId) => {
   return useMutation({
     mutationFn: (value) => createMessages(value, projectId),
     onSuccess: () => {
-     
       queryClient.invalidateQueries({ 
         queryKey: ["messages", projectId] 
       });
-      queryClient.invalidateQueries(
-        {
-          queryKey: ["status"],
-        }
-      )
+      queryClient.invalidateQueries({
+        queryKey: ["status"],
+      });
     },
   });
 };

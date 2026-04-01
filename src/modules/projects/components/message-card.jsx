@@ -2,11 +2,12 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { MessageRole, MessageType } from "@prisma/client";
 import React from "react";
-
 import { format } from "date-fns";
 import { ChevronRightIcon, Code2Icon } from "lucide-react";
 
 const FragmentCard = ({ fragment, isActiveFragment, onFragmentClick }) => {
+  if (!fragment) return null; // ✅ guard against null fragment
+
   return (
     <button
       className={cn(
@@ -17,16 +18,14 @@ const FragmentCard = ({ fragment, isActiveFragment, onFragmentClick }) => {
       onClick={() => onFragmentClick(fragment)}
     >
       <Code2Icon className="size-4 mt-0.5" />
-      <div className="flex flex-col flex-1 ">
+      <div className="flex flex-col flex-1">
         <span className="text-sm font-medium line-clamp-1">
-          {fragment.title}
+          {fragment.title || "Fragment"} {/* ✅ fallback title */}
         </span>
         <span className="text-sm">Preview</span>
       </div>
       <div className="flex items-center justify-center mt-0.5">
-        <span className="text-sm">
-            <ChevronRightIcon className="size-4" />
-        </span>
+        <ChevronRightIcon className="size-4" />
       </div>
     </button>
   );
@@ -35,11 +34,7 @@ const FragmentCard = ({ fragment, isActiveFragment, onFragmentClick }) => {
 const UserMessage = ({ content }) => {
   return (
     <div className="flex justify-end pb-4 pr-2 pl-10">
-      <Card
-        className={
-          "rounded-lg bg-muted p-2 shadow-none border-none max-w-[80%] break-words"
-        }
-      >
+      <Card className="rounded-lg bg-muted p-2 shadow-none border-none max-w-[80%] break-words">
         {content}
       </Card>
     </div>
@@ -64,11 +59,14 @@ const AssistantMessage = ({
       <div className="flex items-center gap-2 pl-2 mb-2">
         <span className="text-sm font-medium">V0</span>
         <span className="text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-          {format(new Date(createdAt), "HH:mm 'on' MMM dd, yyyy")}
+          {createdAt ? format(new Date(createdAt), "HH:mm 'on' MMM dd, yyyy") : ""}
         </span>
       </div>
-      <div className="pl-8.5 flex flex-col gap-y-4">
-        <span>{content}</span>
+      <div className="pl-8 flex flex-col gap-y-4">
+        {/* ✅ only show content if it exists */}
+        {content && <span>{content}</span>}
+
+        {/* ✅ show fragment card only for RESULT messages with a fragment */}
         {fragment && type === MessageType.RESULT && (
           <FragmentCard
             fragment={fragment}
@@ -103,11 +101,7 @@ const MessageCard = ({
     );
   }
 
-  return (
-    <>
-      <UserMessage content={content} />
-    </>
-  );
+  return <UserMessage content={content} />;
 };
 
 export default MessageCard;

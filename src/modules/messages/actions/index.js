@@ -10,36 +10,27 @@ export const createMessages = async (value, projectId) => {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
 
+  if (!projectId) throw new Error("Project ID is required");
+
   // Verify project ownership
- const project = await db.project.findFirst({
-  where: {
-    id: Number(projectId),
-    userId: user.id,
-  },
-});
+  const project = await db.project.findFirst({
+    where: {
+      id: projectId,        // ✅ String UUID - no Number()
+      userId: user.id,
+    },
+  });
+
   if (!project) throw new Error("Project not found or unauthorized");
 
   try {
-    
     await consumeCredits();
   } catch (error) {
-    if(error instanceof Error) {
-      throw new Error({
-      code:"BAD_REQUEST",
-        message:"Something went wrong"
-      })
-    }
-    else{
-      throw new Error({
-        code:"TOO_MANY_REQUESTS",
-        message:"Too many requests"
-      })
-    }
+    throw new Error("Insufficient credits or request limit reached.");
   }
 
   const newMessage = await db.message.create({
     data: {
-      projectId:Number(projectId),
+      projectId: projectId,  // ✅ String UUID - no Number()
       content: value,
       role: MessageRole.USER,
       type: MessageType.RESULT,
@@ -50,7 +41,7 @@ export const createMessages = async (value, projectId) => {
     name: "code-agent/run",
     data: {
       value: value,
-      projectId: Number(projectId),
+      projectId: projectId,  // ✅ String UUID - no Number()
     },
   });
 
@@ -61,10 +52,12 @@ export const getMessages = async (projectId) => {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
 
+  if (!projectId) throw new Error("Project ID is required");
+
   // Verify project ownership
-  const project = await db.project.findUnique({
+  const project = await db.project.findFirst({  // ✅ findFirst instead of findUnique
     where: {
-      id: Number(projectId),
+      id: projectId,         // ✅ String UUID - no Number()
       userId: user.id,
     },
   });
@@ -73,13 +66,13 @@ export const getMessages = async (projectId) => {
 
   const messages = await db.message.findMany({
     where: {
-      projectId:Number(projectId),
+      projectId: projectId,  // ✅ String UUID - no Number()
     },
     orderBy: {
       updatedAt: "asc",
     },
     include: {
-      fragment: true,
+      fragments: true,
     },
   });
 

@@ -7,11 +7,18 @@ import { generateSlug } from "random-word-slugs";
 import { getCurrentUser } from "@/modules/auth/actions";
 import { consumeCredits } from "@/lib/usage";
 
+/**
+ * Fetches all projects belonging to the current authenticated user.
+ */
 export const getProjects = async () => {
   const user = await getCurrentUser();
-  if (!user) throw new Error("Unauthorized");
 
-  const projects = await db.project.findMany({
+  if (!user) {
+    console.error("Auth Error: No user record found in the database.");
+    throw new Error("Unauthorized");
+  }
+
+  return await db.project.findMany({
     where: {
       userId: user.id,
     },
@@ -19,23 +26,21 @@ export const getProjects = async () => {
       createdAt: "desc",
     },
   });
-
-  return projects;
 };
 
+/**
+ * Creates a new project, handles credit consumption, and triggers an Inngest function.
+ */
 export const createProject = async (value) => {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
 
-  // ✅ Fixed: Error() mein string pass karo, object nahi
+  if (!value) throw new Error("Project value/prompt is required");
+
   try {
     await consumeCredits();
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error("Something went wrong");
-    } else {
-      throw new Error("Too many requests");
-    }
+    throw new Error("Insufficient credits or request limit reached.");
   }
 
   const newProject = await db.project.create({
@@ -52,36 +57,43 @@ export const createProject = async (value) => {
     },
   });
 
-  // ✅ Fixed: inngest.send() ko try-catch mein wrap kiya
-  try {
-    await inngest.send({
-      name: "code-agent/run",
-      data: {
-        value: value,
-        projectId: newProject.id,
-      },
-    });
-  } catch (error) {
-    console.error("Inngest send failed:", error);
-    // Project ban gaya hai, sirf background job fail hua
-    // Aap chahein toh yahan project delete bhi kar sakte ho
-  }
+  await inngest.send({
+    name: "code-agent/run",
+    data: {
+      value: value,
+      projectId: newProject.id,
+    },
+  });
 
   return newProject;
 };
 
+/**
+ * Fetches a single project by ID, ensuring the current user owns it.
+ */
 export const getProjectById = async (projectId) => {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
 
-  const project = await db.project.findUnique({
+  if (!projectId) throw new Error("Project ID is required");
+
+  const project = await db.project.findFirst({
     where: {
-      id: Number(projectId),
-      userId: user.id,
+      id: projectId,        // ✅ String UUID - no Number() conversion
+      userId: user.id,      // ✅ String UUID
+    },
+    include: {
+      messages: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
     },
   });
 
-  if (!project) throw new Error("Project not found");
+  if (!project) {
+    throw new Error("Project not found or you do not have permission to view it.");
+  }
 
   return project;
 };

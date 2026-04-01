@@ -4,14 +4,13 @@ import { QueryProvider } from "../components/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
-
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const poppins = Poppins({
   subsets: ["latin"],
   variable: "--font-poppins",
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
-
 
 export const metadata = {
   title: "Create Next App",
@@ -21,29 +20,29 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider
-    appearance={{
-      variables:{
-        colorPrimary: "#006239",
-      }
-    }}
+      appearance={{
+        variables: {
+          colorPrimary: "#006239",
+        },
+      }}
     >
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${poppins.variable} ${poppins.className} antialiased`}
-      >
-             <ThemeProvider
+      <html lang="en" suppressHydrationWarning>
+        <body className={`${poppins.variable} ${poppins.className} antialiased`}>
+          <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
-        <QueryProvider>
-          <Toaster/>
-        {children}
-        </QueryProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+            <QueryProvider>
+              <TooltipProvider>
+                <Toaster />
+                {children}
+              </TooltipProvider>
+            </QueryProvider>
+          </ThemeProvider>
+        </body>
+      </html>
     </ClerkProvider>
   );
 }
